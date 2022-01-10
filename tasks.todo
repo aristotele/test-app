@@ -1,0 +1,7 @@
+
+save List of people into db by Artisan command
+
+1. fetch all people
+2. save it into db
+3. create endpoint to expose the to public
+4. publish on github
