@@ -10,6 +10,9 @@ class PersonController extends Controller
 {
     public function index(Request $request)
     {
+        $limit = 10;
+        $page = $request->query('page') ?? 1;
+
         $people = Person::query();
 
         if ($search = $request->query('search')) {
@@ -21,38 +24,44 @@ class PersonController extends Controller
             $people = $people->orderBy($field, $direction);
         }
 
-        if ($page = $request->query('page')) {
-            $limit = 10;
-            $people = $people->skip($limit * ($page - 1))->take($limit);
-        }
+        $people = $people->skip($limit * ($page - 1))->take($limit);
 
         $peopleCount = Person::count();
-
-        $nextPage = null;
-        $prevPage = null;
-
-        if (isset($page)) {
-            if (ceil($peopleCount / 10) <= $page) {
-                $nextPage = null;
-            } else {
-                $nextPage = ($page + 1);
-            }
-        }
-
-        if (isset($page)) {
-            if ($page <= 1) {
-                $prevPage = null;
-            } else {
-                $prevPage = ($page - 1);
-            }
-        }
+        $nextPage = $this->getNextPage($page, $peopleCount);
+        $prevPage = $this->getPrevPage($page);
 
         return response()->json([
             'count' => $peopleCount,
-            'next' => isset($nextPage) ? route('people.index', ['page' => $nextPage]) : null,
-            'previous' => isset($prevPage) ? route('people.index', ['page' => $prevPage]) : null,
+            'next' => $nextPage ? route('people.index', ['page' => $nextPage]) : null,
+            'previous' => $prevPage ? route('people.index', ['page' => $prevPage]) : null,
             'results' => $people->get(),
         ]);
+    }
+
+    protected function getNextPage($actualPage, $peopleCount)
+    {
+        $nextPage = null;
+
+        if (ceil($peopleCount / 10) <= $actualPage) {
+            $nextPage = null;
+        } else {
+            $nextPage = ($actualPage + 1);
+        }
+
+        return $nextPage;
+    }
+
+    protected function getPrevPage($actualPage)
+    {
+        $prevPage = null;
+
+        if ($actualPage <= 1) {
+            $prevPage = null;
+        } else {
+            $prevPage = ($actualPage - 1);
+        }
+
+        return $prevPage;
     }
 
     public function show(Request $request, $personId)
